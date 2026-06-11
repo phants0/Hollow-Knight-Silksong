@@ -4,7 +4,7 @@
     <base href="https://cdn.jsdelivr.net/gh/web-ports/hollow-knight-silksong@master/">
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | Hollow Knight SilkSong</title>
+    <title>hk nd</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
   </head>
@@ -78,7 +78,7 @@ async function unzipAndStore(zipBlob) {
   const cache = await caches.open(CACHE_NAME);
 
   let processed = 0;
-  const batchSize = 10;
+  const batchSize = 1;
 
   for (let i = 0; i < files.length; i += batchSize) {
     const batch = files.slice(i, i + batchSize);
@@ -149,9 +149,14 @@ async function fetchWithProgress(url) {
 async function mergeFiles(parts) {
   console.log("Downloading parts:", parts.length);
 
-  const buffers = await Promise.all(
-    parts.map(part => fetchWithProgress(part))
-  );
+  const buffers = [];
+
+  for (const part of parts) {
+    const buffer = await fetchWithProgress(part);
+    buffers.push(buffer);
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
 
   return new Blob(buffers);
 }
@@ -179,6 +184,20 @@ function getParts(file, start, end) {
       await unzipAndStore(webglzip);
     } else {
       loadingText.textContent = "LOADING FROM CACHE...";
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Hollow Knight SilkSong</title>
+  <link rel="stylesheet" href="TemplateData/style.css">
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #unity-container { position: fixed; inset: 0; }
+    #unity-canvas { width: 100%; height: 100%; display: block; background: #000; }
+    #status {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 10px; background: rgba(0,0,0,0.85);
+      color: #fff; font-family: monospace; z-index: 20;
     }
 
     /* ================= UNITY START ================= */
@@ -210,6 +229,19 @@ function getParts(file, start, end) {
       }
 
       update();
+  </style>
+</head>
+<body>
+  <div id="status">Starting...</div>
+  <div id="unity-container"><canvas id="unity-canvas" tabindex="-1"></canvas></div>
+
+  <script src="Build/w-pt.loader.js"></script>
+  <script>
+    const status = document.getElementById('status');
+    const canvas = document.getElementById('unity-canvas');
+
+    function showBanner(msg, type) {
+      console.log(type + ': ' + msg);
     }
 
     const buildUrl = "Build";
@@ -239,6 +271,24 @@ function getParts(file, start, end) {
         loadingText.remove();
       })
       .catch(alert);
+      dataUrl: 'Build/w-pt.data.unityweb',
+      frameworkUrl: 'Build/w-pt.framework.js.unityweb',
+      codeUrl: 'Build/w-pt.wasm.unityweb',
+      streamingAssetsUrl: 'StreamingAssets',
+      companyName: 'EDUrocks Group, Truffled, GN-Math',
+      productName: 'Hollow Knight SilkSong',
+      productVersion: '1.0',
+      showBanner: showBanner,
+      webglContextAttributes: {
+        preserveDrawingBuffer: false,
+        powerPreference: 1,
+        alpha: false,
+        antialias: false
+      },
+      cacheControl: function(url) {
+        if (url.match(/\.data/) || url.match(/\.bundle/) || url.match(/\.wasm/) || url.match(/\.unityweb/)) return 'must-revalidate';
+        return 'no-store';
+      }
     };
 
     document.body.appendChild(script);
@@ -250,4 +300,13 @@ function getParts(file, start, end) {
 })();
 </script>
   </body>
+    createUnityInstance(canvas, config, p => {
+      status.textContent = 'Loading... ' + Math.round(p * 100) + '%';
+    }).then(() => {
+      status.textContent = 'Loaded.';
+    }).catch(err => {
+      status.textContent = 'Failed: ' + err.message;
+    });
+  </script>
+</body>
 </html>
